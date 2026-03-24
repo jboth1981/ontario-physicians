@@ -1,0 +1,9 @@
+requests
+beautifulsoup4
+lxml
+fastapi
+uvicorn[standard]
+jinja2
+python-dotenv
+httpx
+python-multipart

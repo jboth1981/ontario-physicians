@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>Ontario Physician Search</h1>
+
+    <form class="search-form" method="get" action="/">
+        <div class="form-row">
+            <input type="text" name="q" value="{{ q }}"
+                   placeholder="Keyword (e.g. doctor name, hospital)"
+                   autocomplete="off">
+            <input type="text" name="postal_code" value="{{ postal_code }}"
+                   placeholder="Your postal code (e.g. M5V 2T6)"
+                   autocomplete="postal-code" required>
+            <button type="submit">Search</button>
+        </div>
+
+        <div class="filters-row">
+            <select name="specialty">
+                <option value="">Any specialty</option>
+                {% for s in filter_options.specialties %}
+                <option value="{{ s }}" {% if specialty == s %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+            </select>
+
+            <select name="language">
+                <option value="">Any language</option>
+                {% for l in filter_options.languages %}
+                <option value="{{ l }}" {% if language == l %}selected{% endif %}>{{ l }}</option>
+                {% endfor %}
+            </select>
+
+            <select name="gender">
+                <option value="">Any gender</option>
+                {% for g in filter_options.genders %}
+                <option value="{{ g }}" {% if gender == g %}selected{% endif %}>{{ g }}</option>
+                {% endfor %}
+            </select>
+
+            <label class="checkbox-label">
+                <input type="checkbox" name="active_only" value="on"
+                       {% if active_only %}checked{% endif %}>
+                Active only
+            </label>
+        </div>
+    </form>
+
+    {% if error %}
+    <p class="error">{{ error }}</p>
+    {% endif %}
+
+    {% if results %}
+    <div id="map"></div>
+
+    <div class="results">
+        <p class="results-count">Showing {{ results|length }} nearest physician{{ "s" if results|length != 1 }} {% if q %}for "{{ q }}"{% endif %}</p>
+        {% for r in results %}
+        <div class="result-card" data-index="{{ loop.index }}">
+            <div class="result-header">
+                <span class="result-number">{{ loop.index }}</span>
+                <h2>{{ r.full_name or "Unknown" }}</h2>
+                {% if r.distance_km is not none %}
+                <span class="distance">{{ r.distance_km }} km</span>
+                {% endif %}
+            </div>
+            <div class="result-body">
+                {% if r.specialties %}
+                <p><strong>Specialties:</strong> {{ r.specialties }}</p>
+                {% endif %}
+                {% if r.practice_name %}
+                <p><strong>Practice:</strong> {{ r.practice_name }}</p>
+                {% endif %}
+                <p>
+                    {% if r.street %}{{ r.street }}, {% endif %}
+                    {% if r.city %}{{ r.city }}{% endif %}
+                    {% if r.province %}, {{ r.province }}{% endif %}
+                    {% if r.postal_code %} {{ r.postal_code }}{% endif %}
+                </p>
+                {% if r.phone %}
+                <p><strong>Phone:</strong> {{ r.phone }}</p>
+                {% endif %}
+                {% if r.hospitals %}
+                <p><strong>Hospitals:</strong> {{ r.hospitals }}</p>
+                {% endif %}
+                <p class="meta">
+                    {{ r.registration_status or "" }}
+                    {% if r.registration_class %} &middot; {{ r.registration_class }}{% endif %}
+                    {% if r.languages %} &middot; {{ r.languages }}{% endif %}
+                </p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if results %}
+<script>
+    var RESULTS = {{ results|tojson }};
+    var USER_LAT = {{ user_lat|tojson }};
+    var USER_LNG = {{ user_lng|tojson }};
+</script>
+<script src="/static/map.js"></script>
+{% endif %}
+{% endblock %}
