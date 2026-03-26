@@ -236,6 +236,18 @@ def insert_physician(conn, data):
                 addr.get("email"),
             ),
         )
+        # Backfill lat/lng from geocode_cache if available
+        postal_code = addr.get("postal_code")
+        if postal_code:
+            cached = conn.execute(
+                "SELECT lat, lng FROM geocode_cache WHERE postal_code = ? AND status = 'ok'",
+                (postal_code,),
+            ).fetchone()
+            if cached:
+                conn.execute(
+                    "UPDATE addresses SET lat = ?, lng = ? WHERE id = last_insert_rowid()",
+                    (cached["lat"], cached["lng"]),
+                )
 
     for spec in data.get("specialties", []):
         conn.execute(

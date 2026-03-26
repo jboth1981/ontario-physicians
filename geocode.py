@@ -133,6 +133,19 @@ def run_geocoding(dry_run=False, retry_errors=False):
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA busy_timeout = 30000")
     conn.execute("PRAGMA journal_mode=WAL")
+    # Backfill lat/lng for any addresses with a cached postal code but missing coordinates
+    backfilled = conn.execute(
+        """UPDATE addresses
+           SET lat = gc.lat, lng = gc.lng
+           FROM geocode_cache gc
+           WHERE addresses.postal_code = gc.postal_code
+             AND gc.status = 'ok'
+             AND addresses.lat IS NULL""",
+    ).rowcount
+    conn.commit()
+    if backfilled:
+        log.info("Backfilled lat/lng for %d addresses from geocode_cache", backfilled)
+
     pending = get_pending_postal_codes(conn, retry_errors=retry_errors)
 
     log.info("Found %d postal codes to geocode", len(pending))
