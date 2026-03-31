@@ -62,6 +62,7 @@
             spiderfyOnMaxZoom: false,
             showCoverageOnHover: false,
             zoomToBoundsOnClick: false,
+            singleMarkerMode: true,
         });
 
         var CPSO_URL = "https://register.cpso.on.ca/physician-info/?cpsonum=";
@@ -84,17 +85,9 @@
         RESULTS.forEach(function (r, i) {
             if (r.lat == null || r.lng == null) return;
 
-            var marker = L.marker([r.lat, r.lng], {
-                icon: L.divIcon({
-                    className: "result-marker",
-                    html: '<div style="background:#dc2626;color:white;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.3);">' + (i + 1) + "</div>",
-                    iconSize: [24, 24],
-                    iconAnchor: [12, 12],
-                }),
-            });
+            var marker = L.marker([r.lat, r.lng]);
 
             marker._physicianData = r;
-            marker.bindPopup(doctorCard(r), { maxWidth: 350 });
             clusters.addLayer(marker);
             bounds.extend([r.lat, r.lng]);
         });
@@ -104,17 +97,22 @@
             var items = childMarkers.map(function (m) { return m._physicianData; });
             items.sort(function (a, b) { return (a.full_name || "").localeCompare(b.full_name || ""); });
 
-            var distance = items[0] && items[0].distance_km != null ? items[0].distance_km + ' km' : null;
-            var html = '<div style="max-height:400px;overflow-y:auto;min-width:280px;">';
-            html += '<strong>' + items.length + ' physicians at this location</strong>';
-            if (distance) html += ' <span style="color:#2a5f8f;">(' + distance + ')</span>';
-            html += '<hr style="margin:0.4rem 0;">';
-            items.forEach(function (r) {
-                html += '<div style="padding:0.4rem 0;border-bottom:1px solid #eee;">';
-                html += doctorCard(r);
+            var html;
+            if (items.length === 1) {
+                html = doctorCard(items[0]);
+            } else {
+                var distance = items[0] && items[0].distance_km != null ? items[0].distance_km + ' km' : null;
+                html = '<div style="max-height:400px;overflow-y:auto;min-width:280px;">';
+                html += '<strong>' + items.length + ' physicians at this location</strong>';
+                if (distance) html += ' <span style="color:#2a5f8f;">(' + distance + ')</span>';
+                html += '<hr style="margin:0.4rem 0;">';
+                items.forEach(function (r) {
+                    html += '<div style="padding:0.4rem 0;border-bottom:1px solid #eee;">';
+                    html += doctorCard(r);
+                    html += '</div>';
+                });
                 html += '</div>';
-            });
-            html += '</div>';
+            }
 
             L.popup({ maxWidth: 350 })
                 .setLatLng(e.layer.getLatLng())
