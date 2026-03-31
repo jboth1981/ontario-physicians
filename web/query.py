@@ -96,7 +96,7 @@ def search_physicians(
         ) FROM hospital_privileges h WHERE h.cpso_number = p.cpso_number
         ) AS hospitals,
         a.name AS practice_name, a.street, a.city, a.province, a.postal_code,
-        a.phone, a.lat, a.lng"""
+        a.phone, a.fax, a.lat, a.lng"""
 
     joins = ["LEFT JOIN addresses a ON a.cpso_number = p.cpso_number"]
     conditions = ["a.lat IS NOT NULL"]
@@ -177,6 +177,7 @@ def search_physicians(
                 "province": row["province"],
                 "postal_code": row["postal_code"],
                 "phone": row["phone"],
+                "fax": row["fax"],
                 "lat": lat,
                 "lng": lng,
                 "distance_km": distance,

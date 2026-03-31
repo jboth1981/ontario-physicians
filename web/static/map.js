@@ -64,15 +64,21 @@
             zoomToBoundsOnClick: false,
         });
 
-        function buildPopupHtml(r) {
-            var lines = [];
-            lines.push("<strong>" + (r.full_name || "Unknown") + "</strong>");
-            if (r.specialties) lines.push(r.specialties);
+        var CPSO_URL = "https://register.cpso.on.ca/physician-info/?cpsonum=";
+
+        function doctorCard(r) {
+            var html = '<div style="min-width:220px;font-size:0.9em;line-height:1.5;">';
+            html += '<strong>' + (r.full_name || "Unknown") + '</strong>';
+            if (r.specialties) html += '<br><span style="color:#555;">' + r.specialties + '</span>';
             var addrParts = [r.street, r.city, r.province, r.postal_code].filter(Boolean);
-            if (addrParts.length) lines.push(addrParts.join(", "));
-            if (r.phone) lines.push("Phone: " + r.phone);
-            if (r.distance_km != null) lines.push("<em>" + r.distance_km + " km away</em>");
-            return lines.join("<br>");
+            if (addrParts.length) html += '<br>' + addrParts.join(", ");
+            if (r.phone) html += '<br>Phone: ' + r.phone;
+            if (r.fax) html += '<br>Fax: ' + r.fax;
+            html += '<br>CPSO#: ' + r.cpso_number;
+            if (r.distance_km != null) html += '<br><em style="color:#2a5f8f;">' + r.distance_km + ' km</em>';
+            html += '<br><a href="' + CPSO_URL + r.cpso_number + '" target="_blank" rel="noopener" style="color:#2a5f8f;">View CPSO Profile</a>';
+            html += '</div>';
+            return html;
         }
 
         RESULTS.forEach(function (r, i) {
@@ -88,7 +94,7 @@
             });
 
             marker._physicianData = r;
-            marker.bindPopup(buildPopupHtml(r));
+            marker.bindPopup(doctorCard(r), { maxWidth: 350 });
             clusters.addLayer(marker);
             bounds.extend([r.lat, r.lng]);
         });
@@ -99,14 +105,13 @@
             items.sort(function (a, b) { return (a.full_name || "").localeCompare(b.full_name || ""); });
 
             var distance = items[0] && items[0].distance_km != null ? items[0].distance_km + ' km' : null;
-            var html = '<div style="max-height:300px;overflow-y:auto;min-width:250px;">';
+            var html = '<div style="max-height:400px;overflow-y:auto;min-width:280px;">';
             html += '<strong>' + items.length + ' physicians at this location</strong>';
-            if (distance) html += ' <span style="color:#2563eb;">(' + distance + ')</span>';
+            if (distance) html += ' <span style="color:#2a5f8f;">(' + distance + ')</span>';
             html += '<hr style="margin:0.4rem 0;">';
             items.forEach(function (r) {
-                html += '<div style="padding:0.3rem 0;border-bottom:1px solid #eee;">';
-                html += '<strong>' + (r.full_name || "Unknown") + '</strong>';
-                if (r.specialties) html += '<br><span style="font-size:0.85em;color:#555;">' + r.specialties + '</span>';
+                html += '<div style="padding:0.4rem 0;border-bottom:1px solid #eee;">';
+                html += doctorCard(r);
                 html += '</div>';
             });
             html += '</div>';
