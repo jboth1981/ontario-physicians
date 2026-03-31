@@ -1,9 +1,14 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container">
-    <h1>Ontario Physician Search</h1>
+<header class="site-header">
+    <div class="container">
+        <h1>Ontario Physician Search</h1>
+        <p class="subtitle">Find doctors by name, specialty, or location</p>
+    </div>
+</header>
 
+<div class="container">
     <form class="search-form" method="get" action="/">
         <div class="form-row">
             <input type="text" name="q" value="{{ q }}"

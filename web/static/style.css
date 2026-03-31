@@ -6,25 +6,51 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: #f5f5f5;
+    background: #f0f2f5;
     color: #333;
     line-height: 1.5;
+}
+
+.site-header {
+    background: linear-gradient(135deg, #1e3a5f 0%, #2a5f8f 100%);
+    color: white;
+    padding: 1.25rem 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.site-header .container {
+    padding: 0;
+}
+
+.site-header h1 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: white;
+    margin: 0;
+    letter-spacing: -0.01em;
+}
+
+.site-header .subtitle {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 400;
+    margin-top: 0.15rem;
 }
 
 .container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 2rem 1rem;
+    padding: 1.5rem 1rem;
 }
 
-h1 {
-    font-size: 1.5rem;
-    margin-bottom: 1rem;
-    color: #1a1a1a;
-}
-
+/* Search form card */
 .search-form {
-    margin-bottom: 1.5rem;
+    background: white;
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+    border: 1px solid #e2e6ea;
 }
 
 .form-row {
@@ -37,57 +63,69 @@ h1 {
     flex: 1;
     min-width: 200px;
     padding: 0.6rem 0.8rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    border: 1px solid #d0d5dd;
+    border-radius: 6px;
     font-size: 1rem;
+    background: #fafbfc;
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
 }
 
 .form-row input[type="text"]:focus {
     outline: none;
-    border-color: #2563eb;
-    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+    border-color: #2a5f8f;
+    box-shadow: 0 0 0 3px rgba(42, 95, 143, 0.15);
+    background: white;
 }
 
 .form-row button {
-    padding: 0.6rem 1.5rem;
-    background: #2563eb;
+    padding: 0.6rem 1.75rem;
+    background: linear-gradient(135deg, #2a5f8f 0%, #1e3a5f 100%);
     color: white;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
     font-size: 1rem;
+    font-weight: 500;
     cursor: pointer;
+    transition: box-shadow 0.15s, transform 0.1s;
 }
 
 .form-row button:hover {
-    background: #1d4ed8;
+    box-shadow: 0 2px 6px rgba(30, 58, 95, 0.3);
+}
+
+.form-row button:active {
+    transform: translateY(1px);
 }
 
 .filters-row {
     display: flex;
     gap: 0.5rem;
     flex-wrap: wrap;
-    margin-top: 0.5rem;
+    margin-top: 0.75rem;
     align-items: center;
 }
 
 .filters-row select {
     padding: 0.45rem 0.6rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    border: 1px solid #d0d5dd;
+    border-radius: 6px;
     font-size: 0.9rem;
-    background: white;
+    background: #fafbfc;
     color: #333;
     min-width: 150px;
+    transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .filters-row select:focus {
     outline: none;
-    border-color: #2563eb;
-    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+    border-color: #2a5f8f;
+    box-shadow: 0 0 0 3px rgba(42, 95, 143, 0.15);
 }
 
 .specialty-row {
-    margin-top: 0.5rem;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid #eef0f2;
 }
 
 .specialty-dual {
@@ -103,10 +141,12 @@ h1 {
 }
 
 .specialty-dual label {
-    font-size: 0.85rem;
-    color: #555;
+    font-size: 0.8rem;
+    color: #667;
     margin-bottom: 0.25rem;
     font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
 }
 
 .specialty-selected-header {
@@ -122,54 +162,56 @@ h1 {
 
 #specialty-clear {
     padding: 0.15rem 0.5rem;
-    border: 1px solid #ccc;
-    border-radius: 3px;
-    background: #f0f0f0;
+    border: 1px solid #d0d5dd;
+    border-radius: 4px;
+    background: #fafbfc;
     color: #555;
     font-size: 0.8rem;
     cursor: pointer;
+    transition: background 0.15s;
 }
 
 #specialty-clear:hover {
-    background: #e0e0e0;
+    background: #eef0f2;
 }
 
 .specialty-available input[type="text"] {
     padding: 0.45rem 0.6rem;
-    border: 1px solid #ccc;
+    border: 1px solid #d0d5dd;
     border-bottom: none;
-    border-radius: 4px 4px 0 0;
+    border-radius: 6px 6px 0 0;
     font-size: 0.9rem;
-    background: white;
+    background: #fafbfc;
     color: #333;
+    transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .specialty-available input[type="text"]:focus {
     outline: none;
-    border-color: #2563eb;
-    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+    border-color: #2a5f8f;
+    box-shadow: 0 0 0 3px rgba(42, 95, 143, 0.15);
 }
 
 #specialty-pool,
 #specialty-chosen {
     padding: 0.3rem;
-    border: 1px solid #ccc;
-    border-radius: 0 0 4px 4px;
+    border: 1px solid #d0d5dd;
+    border-radius: 0 0 6px 6px;
     font-size: 0.9rem;
-    background: white;
+    background: #fafbfc;
     color: #333;
     width: 100%;
 }
 
 #specialty-chosen {
-    border-radius: 4px;
+    border-radius: 6px;
 }
 
 #specialty-pool:focus,
 #specialty-chosen:focus {
     outline: none;
-    border-color: #2563eb;
-    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+    border-color: #2a5f8f;
+    box-shadow: 0 0 0 3px rgba(42, 95, 143, 0.15);
 }
 
 .checkbox-label {
@@ -186,21 +228,25 @@ h1 {
     width: 1rem;
     height: 1rem;
     cursor: pointer;
+    accent-color: #2a5f8f;
 }
 
 .error {
-    color: #dc2626;
+    color: #9a2c2c;
     margin-bottom: 1rem;
-    padding: 0.75rem;
+    padding: 0.75rem 1rem;
     background: #fef2f2;
-    border-radius: 4px;
+    border-radius: 6px;
+    border: 1px solid #fcd5d5;
+    font-size: 0.9rem;
 }
 
 #map {
     height: 350px;
-    border-radius: 6px;
-    margin-bottom: 1.5rem;
-    border: 1px solid #ddd;
+    border-radius: 8px;
+    margin-bottom: 1.25rem;
+    border: 1px solid #d0d5dd;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 #map.map-with-results {
@@ -208,21 +254,26 @@ h1 {
 }
 
 .results-count {
-    font-size: 0.9rem;
-    color: #666;
-    margin-bottom: 1rem;
+    font-size: 0.85rem;
+    color: #667;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #eef0f2;
 }
 
 .result-card {
     background: white;
-    border: 1px solid #e5e5e5;
-    border-radius: 6px;
-    padding: 1rem;
-    margin-bottom: 0.75rem;
+    border: 1px solid #e2e6ea;
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 0.6rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .result-card:hover {
-    border-color: #2563eb;
+    border-color: #2a5f8f;
+    box-shadow: 0 2px 8px rgba(42, 95, 143, 0.1);
 }
 
 .result-header {
@@ -239,7 +290,7 @@ h1 {
     min-width: 1.5rem;
     height: 1.5rem;
     padding: 0 0.35rem;
-    background: #dc2626;
+    background: #1e3a5f;
     color: white;
     border-radius: 0.75rem;
     font-size: 0.75rem;
@@ -248,26 +299,38 @@ h1 {
 }
 
 .result-header h2 {
-    font-size: 1.1rem;
+    font-size: 1.05rem;
+    font-weight: 600;
     flex-grow: 1;
+    color: #1a2a3a;
 }
 
 .distance {
-    font-size: 0.9rem;
-    color: #2563eb;
+    font-size: 0.85rem;
+    color: #2a5f8f;
     font-weight: 600;
     white-space: nowrap;
+    background: #eef3f8;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
 }
 
 .result-body p {
     font-size: 0.9rem;
     margin-bottom: 0.25rem;
+    color: #444;
+}
+
+.result-body strong {
+    color: #333;
 }
 
 .result-body .meta {
     font-size: 0.8rem;
-    color: #888;
+    color: #889;
     margin-top: 0.5rem;
+    padding-top: 0.4rem;
+    border-top: 1px solid #f0f2f4;
 }
 
 .pagination {
@@ -281,16 +344,17 @@ h1 {
 
 .pagination-btn {
     padding: 0.5rem 1rem;
-    background: #2563eb;
+    background: #2a5f8f;
     color: white;
-    border-radius: 4px;
+    border-radius: 6px;
     text-decoration: none;
     font-size: 0.9rem;
     cursor: pointer;
+    transition: background 0.15s;
 }
 
 .pagination-btn:hover {
-    background: #1d4ed8;
+    background: #1e3a5f;
 }
 
 .pagination-btn.disabled {
@@ -301,12 +365,16 @@ h1 {
 
 .pagination-info {
     font-size: 0.9rem;
-    color: #666;
+    color: #667;
 }
 
 @media (max-width: 600px) {
     .container {
         padding: 1rem 0.75rem;
+    }
+
+    .search-form {
+        padding: 1rem;
     }
 
     .form-row {
