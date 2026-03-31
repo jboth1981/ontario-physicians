@@ -88,6 +88,7 @@
             var marker = L.marker([r.lat, r.lng]);
 
             marker._physicianData = r;
+            marker.bindPopup(doctorCard(r), { maxWidth: 350 });
             clusters.addLayer(marker);
             bounds.extend([r.lat, r.lng]);
         });
