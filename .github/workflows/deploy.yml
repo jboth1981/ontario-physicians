@@ -1,0 +1,29 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy via rsync
+        uses: burnett01/rsync-deployments@7.0.1
+        with:
+          switches: -avz --delete --exclude='.env' --exclude='*.db' --exclude='*.db-journal' --exclude='*.db-wal' --exclude='*.db-shm' --exclude='venv/' --exclude='__pycache__/' --exclude='.git/'
+          path: ./
+          remote_path: /opt/ontario_physicians/
+          remote_host: ${{ secrets.SERVER_IP }}
+          remote_user: ubuntu
+          remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Restart service
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: sudo systemctl restart ontario-physicians
