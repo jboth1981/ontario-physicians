@@ -86,6 +86,92 @@ h1 {
     box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
 }
 
+.specialty-row {
+    margin-top: 0.5rem;
+}
+
+.specialty-dual {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.specialty-available,
+.specialty-selected {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.specialty-dual label {
+    font-size: 0.85rem;
+    color: #555;
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+}
+
+.specialty-selected-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.25rem;
+}
+
+.specialty-selected-header label {
+    margin-bottom: 0;
+}
+
+#specialty-clear {
+    padding: 0.15rem 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    background: #f0f0f0;
+    color: #555;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+#specialty-clear:hover {
+    background: #e0e0e0;
+}
+
+.specialty-available input[type="text"] {
+    padding: 0.45rem 0.6rem;
+    border: 1px solid #ccc;
+    border-bottom: none;
+    border-radius: 4px 4px 0 0;
+    font-size: 0.9rem;
+    background: white;
+    color: #333;
+}
+
+.specialty-available input[type="text"]:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+#specialty-pool,
+#specialty-chosen {
+    padding: 0.3rem;
+    border: 1px solid #ccc;
+    border-radius: 0 0 4px 4px;
+    font-size: 0.9rem;
+    background: white;
+    color: #333;
+    width: 100%;
+}
+
+#specialty-chosen {
+    border-radius: 4px;
+}
+
+#specialty-pool:focus,
+#specialty-chosen:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
 .checkbox-label {
     display: flex;
     align-items: center;
@@ -146,11 +232,12 @@ h1 {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 1.5rem;
+    min-width: 1.5rem;
     height: 1.5rem;
+    padding: 0 0.35rem;
     background: #dc2626;
     color: white;
-    border-radius: 50%;
+    border-radius: 0.75rem;
     font-size: 0.75rem;
     font-weight: bold;
     flex-shrink: 0;
@@ -179,6 +266,40 @@ h1 {
     margin-top: 0.5rem;
 }
 
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1rem;
+    padding: 1rem 0;
+}
+
+.pagination-btn {
+    padding: 0.5rem 1rem;
+    background: #2563eb;
+    color: white;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.pagination-btn:hover {
+    background: #1d4ed8;
+}
+
+.pagination-btn.disabled {
+    background: #d1d5db;
+    color: #9ca3af;
+    cursor: default;
+}
+
+.pagination-info {
+    font-size: 0.9rem;
+    color: #666;
+}
+
 @media (max-width: 600px) {
     .container {
         padding: 1rem 0.75rem;
@@ -199,6 +320,10 @@ h1 {
     .filters-row select {
         min-width: 0;
         width: 100%;
+    }
+
+    .specialty-dual {
+        flex-direction: column;
     }
 
     #map {

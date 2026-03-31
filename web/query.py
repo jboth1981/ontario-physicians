@@ -54,54 +54,79 @@ def get_filter_options(conn: sqlite3.Connection):
 
 def search_physicians(
     conn: sqlite3.Connection,
-    query: str,
     user_lat: float,
     user_lng: float,
-    limit: int = 10,
-    specialty: str = "",
+    keyword: str = "",
+    specialties: list[str] | None = None,
     gender: str = "",
     language: str = "",
     active_only: bool = True,
+    max_distance_km: float = 0,
+    max_results: int = 100,
 ):
-    """Search for physicians matching query + filters, ranked by distance from user.
+    """Search for physicians matching filters, ranked by distance from user.
 
-    Returns a list of dicts with physician info + distance_km.
+    Builds a single SQL query with all filters applied in the database.
+    Returns (results, total_found) where results is capped at max_results
+    and total_found is the count before capping.
     """
-    # FTS search — over-fetch to allow distance re-ranking and post-filtering
-    cursor = conn.execute(
-        """
-        SELECT p.cpso_number, p.full_name, p.registration_status, p.registration_class,
-               p.gender, p.languages, p.medical_school,
-               f.specialties, f.hospitals,
-               a.name AS practice_name, a.street, a.city, a.province, a.postal_code,
-               a.phone, a.lat, a.lng
-        FROM physicians_fts f
-        JOIN physicians p ON p.cpso_number = CAST(f.cpso_number AS INTEGER)
-        LEFT JOIN addresses a ON a.cpso_number = p.cpso_number
-        WHERE physicians_fts MATCH ?
-        ORDER BY rank
-        LIMIT 500
-        """,
-        (query,),
-    )
+    select_fields = """\
+        p.cpso_number, p.full_name, p.registration_status, p.registration_class,
+        p.gender, p.languages, p.medical_school,
+        (SELECT GROUP_CONCAT(s2.specialty_name, ', ')
+         FROM specialties s2 WHERE s2.cpso_number = p.cpso_number
+        ) AS specialties,
+        (SELECT GROUP_CONCAT(
+            COALESCE(h.hospital_name, '') || ' ' || COALESCE(h.hospital_location, ''),
+            ' | '
+        ) FROM hospital_privileges h WHERE h.cpso_number = p.cpso_number
+        ) AS hospitals,
+        a.name AS practice_name, a.street, a.city, a.province, a.postal_code,
+        a.phone, a.lat, a.lng"""
 
-    rows = cursor.fetchall()
+    joins = ["LEFT JOIN addresses a ON a.cpso_number = p.cpso_number"]
+    conditions = ["a.lat IS NOT NULL"]
+    params = []
 
-    # Group by physician — keep only the nearest address per physician
+    # Keyword search via FTS (no row limit — filters handle narrowing)
+    if keyword:
+        words = keyword.split()
+        safe_query = " ".join('"' + w.replace('"', '""') + '"' for w in words if w)
+        from_clause = (
+            "physicians_fts f "
+            "JOIN physicians p ON p.cpso_number = CAST(f.cpso_number AS INTEGER)"
+        )
+        conditions.append("physicians_fts MATCH ?")
+        params.append(safe_query)
+    else:
+        from_clause = "physicians p"
+
+    # Specialty filter via direct JOIN (no FTS needed)
+    if specialties:
+        placeholders = ",".join("?" for _ in specialties)
+        joins.append("JOIN specialties s ON s.cpso_number = p.cpso_number")
+        conditions.append(f"s.specialty_name IN ({placeholders})")
+        params.extend(specialties)
+
+    if active_only:
+        conditions.append("p.registration_status = 'Active'")
+    if gender:
+        conditions.append("p.gender = ?")
+        params.append(gender)
+    if language:
+        conditions.append("p.languages LIKE ?")
+        params.append(f"%{language}%")
+
+    join_clause = "\n".join(joins)
+    where_clause = " AND ".join(conditions)
+
+    sql = f"SELECT {select_fields}\nFROM {from_clause}\n{join_clause}\nWHERE {where_clause}"
+    rows = conn.execute(sql, params).fetchall()
+
+    # Compute distance and deduplicate (keep nearest address per physician)
     physicians = {}
     for row in rows:
         cpso = row["cpso_number"]
-
-        # Apply filters before distance calc
-        if active_only and row["registration_status"] != "Active":
-            continue
-        if gender and row["gender"] != gender:
-            continue
-        if language and (not row["languages"] or language.upper() not in row["languages"].upper()):
-            continue
-        if specialty and (not row["specialties"] or specialty.lower() not in row["specialties"].lower()):
-            continue
-
         lat = row["lat"]
         lng = row["lng"]
 
@@ -109,6 +134,9 @@ def search_physicians(
             distance = haversine_km(user_lat, user_lng, lat, lng)
         else:
             distance = float("inf")
+
+        if max_distance_km and distance > max_distance_km:
+            continue
 
         if cpso not in physicians or distance < physicians[cpso]["distance_km"]:
             physicians[cpso] = {
@@ -132,9 +160,11 @@ def search_physicians(
                 "distance_km": distance,
             }
 
-    # Sort by distance, take top N
+    total_found = len(physicians)
+
+    # Sort by distance, cap at max_results
     sorted_results = sorted(physicians.values(), key=lambda x: x["distance_km"])
-    results = sorted_results[:limit]
+    results = sorted_results[:max_results]
 
     # Round distances for display
     for r in results:
@@ -143,4 +173,4 @@ def search_physicians(
         else:
             r["distance_km"] = None
 
-    return results
+    return results, total_found

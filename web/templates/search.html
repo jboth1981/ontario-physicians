@@ -16,13 +16,6 @@
         </div>
 
         <div class="filters-row">
-            <select name="specialty">
-                <option value="">Any specialty</option>
-                {% for s in filter_options.specialties %}
-                <option value="{{ s }}" {% if specialty == s %}selected{% endif %}>{{ s }}</option>
-                {% endfor %}
-            </select>
-
             <select name="language">
                 <option value="">Any language</option>
                 {% for l in filter_options.languages %}
@@ -37,11 +30,55 @@
                 {% endfor %}
             </select>
 
+            <select name="distance">
+                <option value="">Any distance</option>
+                <option value="10" {% if distance == "10" %}selected{% endif %}>Within 10 km</option>
+                <option value="25" {% if distance == "25" %}selected{% endif %}>Within 25 km</option>
+                <option value="50" {% if distance == "50" %}selected{% endif %}>Within 50 km</option>
+                <option value="100" {% if distance == "100" %}selected{% endif %}>Within 100 km</option>
+                <option value="200" {% if distance == "200" %}selected{% endif %}>Within 200 km</option>
+                <option value="500" {% if distance == "500" %}selected{% endif %}>Within 500 km</option>
+            </select>
+
             <label class="checkbox-label">
                 <input type="checkbox" name="active_only" value="on"
                        {% if active_only %}checked{% endif %}>
                 Active only
             </label>
+        </div>
+
+        <div class="specialty-row">
+            <div class="specialty-dual">
+                <div class="specialty-available">
+                    <label>Specialties</label>
+                    <input type="text" id="specialty-search"
+                           placeholder="Filter..."
+                           autocomplete="off">
+                    <select id="specialty-pool" multiple size="6">
+                        {% for s in filter_options.specialties %}
+                        {% if s not in specialties %}
+                        <option value="{{ s }}">{{ s }}</option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="specialty-selected">
+                    <div class="specialty-selected-header">
+                        <label>Selected</label>
+                        <button type="button" id="specialty-clear">Clear</button>
+                    </div>
+                    <select id="specialty-chosen" multiple size="6">
+                        {% for s in specialties %}
+                        <option value="{{ s }}">{{ s }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div id="specialty-hidden-inputs">
+                {% for s in specialties %}
+                <input type="hidden" name="specialty" value="{{ s }}">
+                {% endfor %}
+            </div>
         </div>
     </form>
 
@@ -53,11 +90,19 @@
     <div id="map"></div>
 
     <div class="results">
-        <p class="results-count">Showing {{ results|length }} nearest physician{{ "s" if results|length != 1 }} {% if q %}for "{{ q }}"{% endif %}</p>
-        {% for r in results %}
-        <div class="result-card" data-index="{{ loop.index }}">
+        <p class="results-count">
+            {% if total_found > results|length %}
+            Showing nearest {{ results|length }} of {{ total_found }} matching physicians (results capped at {{ results|length }})
+            {% else %}
+            {{ results|length }} matching physician{{ "s" if results|length != 1 }}
+            {% endif %}
+            {% if q %} for "{{ q }}"{% endif %}
+        </p>
+        {% for r in page_results %}
+        {% set result_num = (page - 1) * per_page + loop.index %}
+        <div class="result-card" data-index="{{ result_num }}">
             <div class="result-header">
-                <span class="result-number">{{ loop.index }}</span>
+                <span class="result-number">{{ result_num }}</span>
                 <h2>{{ r.full_name or "Unknown" }}</h2>
                 {% if r.distance_km is not none %}
                 <span class="distance">{{ r.distance_km }} km</span>
@@ -90,6 +135,22 @@
             </div>
         </div>
         {% endfor %}
+
+        {% if total_pages > 1 %}
+        <div class="pagination">
+            {% if prev_url %}
+            <a href="{{ prev_url }}" class="pagination-btn">&laquo; Previous</a>
+            {% else %}
+            <span class="pagination-btn disabled">&laquo; Previous</span>
+            {% endif %}
+            <span class="pagination-info">Page {{ page }} of {{ total_pages }}</span>
+            {% if next_url %}
+            <a href="{{ next_url }}" class="pagination-btn">Next &raquo;</a>
+            {% else %}
+            <span class="pagination-btn disabled">Next &raquo;</span>
+            {% endif %}
+        </div>
+        {% endif %}
     </div>
     {% endif %}
 </div>
@@ -104,4 +165,84 @@
 </script>
 <script src="/static/map.js"></script>
 {% endif %}
+<script>
+(function() {
+    var search = document.getElementById('specialty-search');
+    var pool = document.getElementById('specialty-pool');
+    var chosen = document.getElementById('specialty-chosen');
+    var hiddenContainer = document.getElementById('specialty-hidden-inputs');
+
+    function syncHidden() {
+        hiddenContainer.innerHTML = '';
+        Array.from(chosen.options).forEach(function(opt) {
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'specialty';
+            input.value = opt.value;
+            hiddenContainer.appendChild(input);
+        });
+    }
+
+    function moveToChosen(opt) {
+        opt.selected = false;
+        chosen.appendChild(opt);
+        sortSelect(chosen);
+        syncHidden();
+    }
+
+    function moveToPool(opt) {
+        opt.selected = false;
+        pool.appendChild(opt);
+        sortSelect(pool);
+        filterPool();
+    }
+
+    function sortSelect(sel) {
+        var opts = Array.from(sel.options);
+        opts.sort(function(a, b) { return a.textContent.localeCompare(b.textContent); });
+        opts.forEach(function(o) { sel.appendChild(o); });
+    }
+
+    function filterPool() {
+        var filter = search.value.toLowerCase();
+        Array.from(pool.options).forEach(function(opt) {
+            opt.style.display = (!filter || opt.textContent.toLowerCase().indexOf(filter) !== -1) ? '' : 'none';
+        });
+    }
+
+    // Click in pool → move to chosen
+    pool.addEventListener('dblclick', function() {
+        Array.from(pool.selectedOptions).forEach(moveToChosen);
+    });
+
+    // Click in chosen → move back to pool
+    chosen.addEventListener('dblclick', function() {
+        Array.from(chosen.selectedOptions).forEach(function(opt) {
+            moveToPool(opt);
+            syncHidden();
+        });
+    });
+
+    // Single click also works
+    pool.addEventListener('change', function() {
+        Array.from(pool.selectedOptions).forEach(moveToChosen);
+    });
+
+    chosen.addEventListener('change', function() {
+        Array.from(chosen.selectedOptions).forEach(function(opt) {
+            moveToPool(opt);
+            syncHidden();
+        });
+    });
+
+    search.addEventListener('input', filterPool);
+
+    document.getElementById('specialty-clear').addEventListener('click', function() {
+        Array.from(chosen.options).slice().forEach(function(opt) {
+            moveToPool(opt);
+        });
+        syncHidden();
+    });
+})();
+</script>
 {% endblock %}
