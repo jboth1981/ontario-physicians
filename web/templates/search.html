@@ -9,9 +9,11 @@
             <input type="text" name="q" value="{{ q }}"
                    placeholder="Keyword (e.g. doctor name, hospital)"
                    autocomplete="off">
-            <input type="text" name="postal_code" value="{{ postal_code }}"
-                   placeholder="Your postal code (e.g. M5V 2T6)"
-                   autocomplete="postal-code" required>
+            <input type="text" name="postal_code" id="postal-code" value="{{ postal_code }}"
+                   placeholder="Location (postal code, city, or click map)"
+                   autocomplete="off">
+            <input type="hidden" name="lat" id="map-lat" value="{{ user_lat or '' }}">
+            <input type="hidden" name="lng" id="map-lng" value="{{ user_lng or '' }}">
             <button type="submit">Search</button>
         </div>
 
@@ -86,9 +88,9 @@
     <p class="error">{{ error }}</p>
     {% endif %}
 
-    {% if results %}
     <div id="map"></div>
 
+    {% if results %}
     <div class="results">
         <p class="results-count">
             {% if total_found > results|length %}
@@ -157,14 +159,12 @@
 {% endblock %}
 
 {% block scripts %}
-{% if results %}
 <script>
-    var RESULTS = {{ results|tojson }};
-    var USER_LAT = {{ user_lat|tojson }};
-    var USER_LNG = {{ user_lng|tojson }};
+    var RESULTS = {{ results|tojson if results else '[]' }};
+    var USER_LAT = {{ user_lat|tojson if user_lat else 'null' }};
+    var USER_LNG = {{ user_lng|tojson if user_lng else 'null' }};
 </script>
 <script src="/static/map.js"></script>
-{% endif %}
 <script>
 (function() {
     var search = document.getElementById('specialty-search');

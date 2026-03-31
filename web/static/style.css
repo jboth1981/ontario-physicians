@@ -197,10 +197,14 @@ h1 {
 }
 
 #map {
-    height: 550px;
+    height: 350px;
     border-radius: 6px;
     margin-bottom: 1.5rem;
     border: 1px solid #ddd;
+}
+
+#map.map-with-results {
+    height: 550px;
 }
 
 .results-count {

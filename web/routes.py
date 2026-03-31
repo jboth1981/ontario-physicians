@@ -33,6 +33,8 @@ async def search_page(
     request: Request,
     q: str = Query(default="", description="Search keyword"),
     postal_code: str = Query(default="", description="Postal code"),
+    lat: str = Query(default="", description="Latitude from map click"),
+    lng: str = Query(default="", description="Longitude from map click"),
     specialty: list[str] = Query(default=[], description="Filter by specialty"),
     gender: str = Query(default="", description="Filter by gender"),
     language: str = Query(default="", description="Filter by language"),
@@ -61,13 +63,24 @@ async def search_page(
     # Filter out empty strings from specialty list
     specialties = [s for s in specialty if s]
 
-    has_search = (q.strip() or specialties) and postal_code.strip()
+    # Accept direct lat/lng from map click, or geocode from postal code
+    has_location = False
+    if lat and lng:
+        try:
+            user_lat = float(lat)
+            user_lng = float(lng)
+            has_location = True
+        except ValueError:
+            pass
+
+    has_search = (q.strip() or specialties) and (has_location or postal_code.strip())
 
     if has_search:
-        user_lat, user_lng = await geocode_postal_code(conn, postal_code)
+        if not has_location:
+            user_lat, user_lng = await geocode_postal_code(conn, postal_code)
 
         if user_lat is None:
-            error = f"Could not locate postal code \"{postal_code}\". Please check and try again."
+            error = f"Could not locate \"{postal_code}\". Please check and try again."
         else:
             try:
                 all_results, total_found = search_physicians(
