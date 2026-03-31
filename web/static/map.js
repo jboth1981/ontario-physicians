@@ -27,10 +27,21 @@
     // Numbered red markers for each result, grouped in a cluster layer
     var clusters = L.markerClusterGroup({
         maxClusterRadius: 30,
-        spiderfyOnMaxZoom: true,
+        spiderfyOnMaxZoom: false,
         showCoverageOnHover: false,
-        zoomToBoundsOnClick: true,
+        zoomToBoundsOnClick: false,
     });
+
+    function buildPopupHtml(r) {
+        var lines = [];
+        lines.push("<strong>" + (r.full_name || "Unknown") + "</strong>");
+        if (r.specialties) lines.push(r.specialties);
+        var addrParts = [r.street, r.city, r.province, r.postal_code].filter(Boolean);
+        if (addrParts.length) lines.push(addrParts.join(", "));
+        if (r.phone) lines.push("Phone: " + r.phone);
+        if (r.distance_km != null) lines.push("<em>" + r.distance_km + " km away</em>");
+        return lines.join("<br>");
+    }
 
     RESULTS.forEach(function (r, i) {
         if (r.lat == null || r.lng == null) return;
@@ -44,17 +55,33 @@
             }),
         });
 
-        var popupLines = [];
-        popupLines.push("<strong>" + (r.full_name || "Unknown") + "</strong>");
-        if (r.specialties) popupLines.push(r.specialties);
-        var addrParts = [r.street, r.city, r.province, r.postal_code].filter(Boolean);
-        if (addrParts.length) popupLines.push(addrParts.join(", "));
-        if (r.phone) popupLines.push("Phone: " + r.phone);
-        if (r.distance_km != null) popupLines.push("<em>" + r.distance_km + " km away</em>");
-
-        marker.bindPopup(popupLines.join("<br>"));
+        marker._physicianData = r;
+        marker.bindPopup(buildPopupHtml(r));
         clusters.addLayer(marker);
         bounds.extend([r.lat, r.lng]);
+    });
+
+    // Click a cluster → show scrollable list of all doctors at that location
+    clusters.on("clusterclick", function (e) {
+        var childMarkers = e.layer.getAllChildMarkers();
+        var items = childMarkers.map(function (m) { return m._physicianData; });
+        items.sort(function (a, b) { return (a.full_name || "").localeCompare(b.full_name || ""); });
+
+        var html = '<div style="max-height:300px;overflow-y:auto;min-width:250px;">';
+        html += '<strong>' + items.length + ' physicians at this location</strong><hr style="margin:0.4rem 0;">';
+        items.forEach(function (r) {
+            html += '<div style="padding:0.3rem 0;border-bottom:1px solid #eee;">';
+            html += '<strong>' + (r.full_name || "Unknown") + '</strong>';
+            if (r.specialties) html += '<br><span style="font-size:0.85em;color:#555;">' + r.specialties + '</span>';
+            if (r.distance_km != null) html += '<br><span style="font-size:0.85em;color:#2563eb;">' + r.distance_km + ' km</span>';
+            html += '</div>';
+        });
+        html += '</div>';
+
+        L.popup({ maxWidth: 350 })
+            .setLatLng(e.layer.getLatLng())
+            .setContent(html)
+            .openOn(map);
     });
 
     map.addLayer(clusters);
