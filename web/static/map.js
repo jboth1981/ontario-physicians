@@ -73,7 +73,6 @@
             html += '<div style="padding:0.3rem 0;border-bottom:1px solid #eee;">';
             html += '<strong>' + (r.full_name || "Unknown") + '</strong>';
             if (r.specialties) html += '<br><span style="font-size:0.85em;color:#555;">' + r.specialties + '</span>';
-            if (r.distance_km != null) html += '<br><span style="font-size:0.85em;color:#2563eb;">' + r.distance_km + ' km</span>';
             html += '</div>';
         });
         html += '</div>';
