@@ -128,6 +128,9 @@
         map.setView([44.0, -79.5], 7);
     }
 
+    // Force Leaflet to recalculate after layout settles (fixes mobile rendering)
+    setTimeout(function () { map.invalidateSize(); }, 100);
+
     // Clear map lat/lng if user types a new location manually
     var postalInput = document.getElementById("postal-code");
     postalInput.addEventListener("input", function () {
