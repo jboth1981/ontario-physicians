@@ -110,6 +110,14 @@ CREATE TABLE IF NOT EXISTS geocode_cache (
 );
 """
 
+RTREE_SCHEMA = """
+CREATE VIRTUAL TABLE IF NOT EXISTS addresses_rtree USING rtree(
+    id,
+    min_lat, max_lat,
+    min_lng, max_lng
+);
+"""
+
 FTS_SCHEMA = """
 CREATE VIRTUAL TABLE IF NOT EXISTS physicians_fts USING fts5(
     cpso_number UNINDEXED,
@@ -147,6 +155,7 @@ def get_connection(db_path=None):
     conn.row_factory = sqlite3.Row
     conn.executescript(SCHEMA)
     conn.executescript(FTS_SCHEMA)
+    conn.executescript(RTREE_SCHEMA)
     _migrate_schema(conn)
     return conn
 
@@ -204,6 +213,13 @@ def insert_physician(conn, data):
         ),
     )
 
+    # Clear R-tree entries before deleting addresses (need address IDs)
+    conn.execute(
+        "DELETE FROM addresses_rtree WHERE id IN "
+        "(SELECT id FROM addresses WHERE cpso_number = ?)",
+        (cpso,),
+    )
+
     # Clear old child records before re-inserting (idempotent on re-scrape)
     for table in (
         "addresses",
@@ -237,6 +253,7 @@ def insert_physician(conn, data):
             ),
         )
         # Backfill lat/lng from geocode_cache if available
+        addr_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
         postal_code = addr.get("postal_code")
         if postal_code:
             cached = conn.execute(
@@ -245,8 +262,13 @@ def insert_physician(conn, data):
             ).fetchone()
             if cached:
                 conn.execute(
-                    "UPDATE addresses SET lat = ?, lng = ? WHERE id = last_insert_rowid()",
-                    (cached["lat"], cached["lng"]),
+                    "UPDATE addresses SET lat = ?, lng = ? WHERE id = ?",
+                    (cached["lat"], cached["lng"], addr_id),
+                )
+                conn.execute(
+                    "INSERT INTO addresses_rtree (id, min_lat, max_lat, min_lng, max_lng) "
+                    "VALUES (?, ?, ?, ?, ?)",
+                    (addr_id, cached["lat"], cached["lat"], cached["lng"], cached["lng"]),
                 )
 
     for spec in data.get("specialties", []):
@@ -312,6 +334,16 @@ def insert_physician(conn, data):
     conn.execute(
         "INSERT OR REPLACE INTO scrape_progress (cpso_number, status) VALUES (?, 'scraped')",
         (cpso,),
+    )
+
+
+def rebuild_rtree(conn):
+    """Rebuild the R-tree spatial index from all geocoded addresses."""
+    conn.execute("DELETE FROM addresses_rtree")
+    conn.execute(
+        "INSERT INTO addresses_rtree (id, min_lat, max_lat, min_lng, max_lng) "
+        "SELECT id, lat, lat, lng, lng "
+        "FROM addresses WHERE lat IS NOT NULL AND lng IS NOT NULL"
     )
 
 

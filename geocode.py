@@ -133,6 +133,7 @@ def run_geocoding(dry_run=False, retry_errors=False):
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA busy_timeout = 30000")
     conn.execute("PRAGMA journal_mode=WAL")
+    conn.executescript(db.RTREE_SCHEMA)
     # Backfill lat/lng for any addresses with a cached postal code but missing coordinates
     backfilled = conn.execute(
         """UPDATE addresses
@@ -142,6 +143,13 @@ def run_geocoding(dry_run=False, retry_errors=False):
              AND gc.status = 'ok'
              AND addresses.lat IS NULL""",
     ).rowcount
+    if backfilled:
+        conn.execute(
+            "INSERT OR REPLACE INTO addresses_rtree (id, min_lat, max_lat, min_lng, max_lng) "
+            "SELECT id, lat, lat, lng, lng FROM addresses "
+            "WHERE lat IS NOT NULL AND lng IS NOT NULL "
+            "AND id NOT IN (SELECT id FROM addresses_rtree)"
+        )
     conn.commit()
     if backfilled:
         log.info("Backfilled lat/lng for %d addresses from geocode_cache", backfilled)
@@ -188,6 +196,12 @@ def run_geocoding(dry_run=False, retry_errors=False):
                     conn.execute(
                         "UPDATE addresses SET lat = ?, lng = ? WHERE postal_code = ?",
                         (lat, lng, postal_code),
+                    )
+                    conn.execute(
+                        "INSERT OR REPLACE INTO addresses_rtree (id, min_lat, max_lat, min_lng, max_lng) "
+                        "SELECT id, lat, lat, lng, lng FROM addresses "
+                        "WHERE postal_code = ? AND lat IS NOT NULL",
+                        (postal_code,),
                     )
                 conn.commit()
                 break

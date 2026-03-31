@@ -4,6 +4,17 @@ import math
 import sqlite3
 
 
+def bounding_box(lat, lng, km):
+    """Compute a lat/lng bounding box around a point.
+
+    Returns (min_lat, max_lat, min_lng, max_lng).
+    Conservative approximation — box is slightly larger than the circle.
+    """
+    dlat = km / 111.32
+    dlng = km / (111.32 * math.cos(math.radians(lat)))
+    return (lat - dlat, lat + dlat, lng - dlng, lng + dlng)
+
+
 def haversine_km(lat1, lng1, lat2, lng2):
     """Compute the great-circle distance between two points in km."""
     R = 6371.0
@@ -116,6 +127,14 @@ def search_physicians(
     if language:
         conditions.append("p.languages LIKE ?")
         params.append(f"%{language}%")
+
+    if max_distance_km:
+        min_lat, max_lat, min_lng, max_lng = bounding_box(user_lat, user_lng, max_distance_km)
+        joins.append("JOIN addresses_rtree rt ON rt.id = a.id")
+        conditions.append("rt.min_lat >= ? AND rt.max_lat <= ?")
+        params.extend([min_lat, max_lat])
+        conditions.append("rt.min_lng >= ? AND rt.max_lng <= ?")
+        params.extend([min_lng, max_lng])
 
     join_clause = "\n".join(joins)
     where_clause = " AND ".join(conditions)
