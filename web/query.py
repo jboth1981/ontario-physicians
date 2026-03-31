@@ -39,13 +39,13 @@ def get_filter_options(conn: sqlite3.Connection):
         "SELECT DISTINCT languages FROM physicians "
         "WHERE languages IS NOT NULL AND languages != ''"
     ).fetchall()
-    lang_set = set()
+    lang_counts: dict[str, int] = {}
     for row in langs_raw:
         for lang in row[0].split(","):
             lang = lang.strip()
             if lang:
-                lang_set.add(lang)
-    languages = sorted(lang_set)
+                lang_counts[lang] = lang_counts.get(lang, 0) + 1
+    languages = sorted(lang_counts, key=lambda l: lang_counts[l], reverse=True)
 
     genders = [
         row[0]
