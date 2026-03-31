@@ -67,8 +67,11 @@
         var items = childMarkers.map(function (m) { return m._physicianData; });
         items.sort(function (a, b) { return (a.full_name || "").localeCompare(b.full_name || ""); });
 
+        var distance = items[0] && items[0].distance_km != null ? items[0].distance_km + ' km' : null;
         var html = '<div style="max-height:300px;overflow-y:auto;min-width:250px;">';
-        html += '<strong>' + items.length + ' physicians at this location</strong><hr style="margin:0.4rem 0;">';
+        html += '<strong>' + items.length + ' physicians at this location</strong>';
+        if (distance) html += ' <span style="color:#2563eb;">(' + distance + ')</span>';
+        html += '<hr style="margin:0.4rem 0;">';
         items.forEach(function (r) {
             html += '<div style="padding:0.3rem 0;border-bottom:1px solid #eee;">';
             html += '<strong>' + (r.full_name || "Unknown") + '</strong>';
