@@ -96,6 +96,7 @@ def _parse_address_block(block):
     # Try to identify city/province/postal from the last geographical line
     # Pattern: "City, Province  PostalCode" or just "City, Province"
     postal_pattern = re.compile(r"([A-Z]\d[A-Z]\s*\d[A-Z]\d)")
+    partial_postal_pattern = re.compile(r"([A-Z]\d[A-Z])(?:\s*$)")
     province_pattern = re.compile(
         r"[,\s]\s*(Ontario|Quebec|British Columbia|Alberta|Manitoba|Saskatchewan|"
         r"Nova Scotia|New Brunswick|Newfoundland(?: and Labrador)?|"
@@ -106,19 +107,30 @@ def _parse_address_block(block):
     )
 
     geo_line_idx = None
+    # Postal code is the most reliable anchor — find the line that has one
     for i, line in enumerate(lines):
-        if postal_pattern.search(line) or province_pattern.search(line):
+        if postal_pattern.search(line):
             geo_line_idx = i
             break
+    # Fall back to the last line with a province match
+    if geo_line_idx is None:
+        for i, line in enumerate(lines):
+            if province_pattern.search(line):
+                geo_line_idx = i
 
     if geo_line_idx is not None:
         geo_line = lines[geo_line_idx]
 
-        # Extract postal code
+        # Extract postal code (full or partial FSA)
         postal_match = postal_pattern.search(geo_line)
         if postal_match:
             addr["postal_code"] = postal_match.group(1).strip()
             geo_line = geo_line[: postal_match.start()].strip()
+        else:
+            partial_match = partial_postal_pattern.search(geo_line)
+            if partial_match:
+                addr["postal_code"] = partial_match.group(1).strip()
+                geo_line = geo_line[: partial_match.start()].strip()
 
         # Extract province
         prov_match = province_pattern.search(geo_line)
