@@ -28,6 +28,15 @@ body {
     color: white;
     margin: 0;
     letter-spacing: -0.01em;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.header-logo {
+    width: 1.6rem;
+    height: 1.6rem;
+    flex-shrink: 0;
 }
 
 .site-header .subtitle {
