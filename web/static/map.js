@@ -24,7 +24,14 @@
     userMarker.bindPopup("<strong>Your location</strong>");
     bounds.extend([USER_LAT, USER_LNG]);
 
-    // Numbered red markers for each result
+    // Numbered red markers for each result, grouped in a cluster layer
+    var clusters = L.markerClusterGroup({
+        maxClusterRadius: 30,
+        spiderfyOnMaxZoom: true,
+        showCoverageOnHover: false,
+        zoomToBoundsOnClick: true,
+    });
+
     RESULTS.forEach(function (r, i) {
         if (r.lat == null || r.lng == null) return;
 
@@ -35,7 +42,7 @@
                 iconSize: [24, 24],
                 iconAnchor: [12, 12],
             }),
-        }).addTo(map);
+        });
 
         var popupLines = [];
         popupLines.push("<strong>" + (r.full_name || "Unknown") + "</strong>");
@@ -46,8 +53,11 @@
         if (r.distance_km != null) popupLines.push("<em>" + r.distance_km + " km away</em>");
 
         marker.bindPopup(popupLines.join("<br>"));
+        clusters.addLayer(marker);
         bounds.extend([r.lat, r.lng]);
     });
+
+    map.addLayer(clusters);
 
     map.fitBounds(bounds, { padding: [30, 30] });
 })();
