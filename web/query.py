@@ -45,7 +45,10 @@ def get_filter_options(conn: sqlite3.Connection):
             lang = lang.strip()
             if lang:
                 lang_counts[lang] = lang_counts.get(lang, 0) + 1
-    languages = sorted(lang_counts, key=lambda l: lang_counts[l], reverse=True)
+    by_freq = sorted(lang_counts, key=lambda l: lang_counts[l], reverse=True)
+    top = by_freq[:5]
+    rest = sorted(l for l in by_freq[5:])
+    languages = top + rest
 
     genders = [
         row[0]
