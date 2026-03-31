@@ -378,12 +378,24 @@ body {
 }
 
 @media (max-width: 600px) {
+    .site-header {
+        padding: 1rem 0.75rem;
+    }
+
+    .site-header h1 {
+        font-size: 1.2rem;
+    }
+
+    .site-header .subtitle {
+        font-size: 0.8rem;
+    }
+
     .container {
         padding: 1rem 0.75rem;
     }
 
     .search-form {
-        padding: 1rem;
+        padding: 0.75rem;
     }
 
     .form-row {
@@ -392,6 +404,10 @@ body {
 
     .form-row input[type="text"] {
         min-width: 0;
+    }
+
+    .form-row button {
+        width: 100%;
     }
 
     .filters-row {
@@ -408,6 +424,32 @@ body {
     }
 
     #map {
-        height: 300px;
+        height: 250px;
+        border-radius: 6px;
+    }
+
+    #map.map-with-results {
+        height: 350px;
+    }
+
+    .result-card {
+        padding: 0.75rem;
+    }
+
+    .result-header {
+        flex-wrap: wrap;
+    }
+
+    .result-header h2 {
+        font-size: 1rem;
+    }
+
+    .pagination {
+        gap: 0.5rem;
+    }
+
+    .pagination-btn {
+        padding: 0.4rem 0.75rem;
+        font-size: 0.85rem;
     }
 }
