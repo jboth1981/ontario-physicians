@@ -102,17 +102,24 @@ SEARCH_URL = "https://register.cpso.on.ca/Get-Search-Results/"
 DELAY = 0.3  # seconds between API calls
 
 
+class SearchError(Exception):
+    """Raised when a search fails after all retries."""
+
+
 def search(session, last_name, first_name=""):
     """Search the CPSO API for a name prefix.
 
     Returns (cpso_numbers, overflowed) where:
     - cpso_numbers: set of int CPSO numbers found
     - overflowed: True if the API returned -1 (too many results)
+
+    Raises SearchError if all retries are exhausted.
     """
     data = {"lastName": last_name, "cbx-includeinactive": "true"}
     if first_name:
         data["firstName"] = first_name
 
+    last_error = None
     for attempt in range(config.MAX_RETRIES + 1):
         try:
             resp = session.post(
@@ -137,6 +144,7 @@ def search(session, last_name, first_name=""):
             return numbers, False
 
         except Exception as e:
+            last_error = e
             backoff = config.BACKOFF_BASE * (2 ** attempt)
             log.warning(
                 "Search failed for '%s'/'%s': %s — retrying in %ds (attempt %d)",
@@ -145,7 +153,7 @@ def search(session, last_name, first_name=""):
             time.sleep(backoff)
 
     log.error("Exhausted retries for '%s'/'%s'", last_name, first_name)
-    return set(), False
+    raise SearchError(f"Failed after {config.MAX_RETRIES + 1} attempts: {last_error}")
 
 
 # ---------------------------------------------------------------------------
@@ -176,7 +184,14 @@ def discover_prefix(session, last_name, completed, all_cpso, stats, first_name="
         return
 
     time.sleep(DELAY)
-    numbers, overflowed = search(session, last_name, first_name)
+    try:
+        numbers, overflowed = search(session, last_name, first_name)
+    except SearchError:
+        # Permanent failure — record it and keep going so we can report
+        # all failures at the end rather than aborting on the first one.
+        stats.setdefault("failed", []).append(key)
+        log.error("Permanent failure for prefix '%s' — will NOT mark complete", key)
+        return
     stats["queries"] += 1
 
     if stats["queries"] % 100 == 0:
@@ -287,6 +302,8 @@ def run(resume=False, dry_run=False):
     # Final save
     save_progress(completed, all_cpso)
 
+    failed = stats.get("failed", [])
+
     log.info(
         "Discovery %s. %d API queries, %d prefixes resolved, %d unique CPSO numbers found.",
         "interrupted — progress saved" if shutdown_requested else "complete",
@@ -295,11 +312,18 @@ def run(resume=False, dry_run=False):
         len(all_cpso),
     )
 
+    if failed:
+        log.error(
+            "INCOMPLETE: %d prefixes failed permanently and were NOT searched: %s",
+            len(failed), ", ".join(failed),
+        )
+        log.error("Re-run with --resume to retry failed prefixes.")
+
     if all_cpso:
         log.info("CPSO range: %d - %d", min(all_cpso), max(all_cpso))
 
     # Write final list to a simple text file for easy consumption
-    if not shutdown_requested:
+    if not shutdown_requested and not failed:
         output_path = os.path.join(config.DATA_DIR, "discovered_cpso_numbers.txt")
         with open(output_path, "w") as f:
             for num in sorted(all_cpso):
