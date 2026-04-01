@@ -18,6 +18,7 @@ import argparse
 import json
 import logging
 import os
+import re
 import signal
 import string
 import sys
@@ -131,7 +132,11 @@ def search(session, last_name, first_name=""):
                 },
                 timeout=15,
             )
-            result = json.loads(resp.text)
+            # The CPSO API occasionally returns malformed JSON with
+            # stray backslashes in address fields (e.g. "123 Oak Ave\").
+            # Strip trailing backslashes before closing quotes to fix.
+            text = re.sub(r'\\(?=")', '', resp.text)
+            result = json.loads(text, strict=False)
 
             if result.get("totalcount") == -1:
                 return set(), True
