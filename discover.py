@@ -165,20 +165,20 @@ def search(session, last_name, first_name=""):
 # Recursive discovery
 # ---------------------------------------------------------------------------
 
-# Characters to extend prefixes with — lowercase letters plus common
-# surname characters (hyphen, apostrophe, space)
-EXTEND_CHARS = list(string.ascii_lowercase) + ["-", "'", " "]
+# Characters to extend first name prefixes with
+# Note: space is excluded — the API ignores trailing spaces, which causes
+# infinite recursion (e.g. "A " overflows just like "A", leading to "A  ", etc.)
+EXTEND_CHARS = list(string.ascii_lowercase) + ["-", "'"]
 FIRST_NAME_CHARS = list(string.ascii_uppercase)
-
-# Maximum prefix depth before switching to first name subdivision
-MAX_LAST_NAME_DEPTH = 6
 
 
 def discover_prefix(session, last_name, completed, all_cpso, stats, first_name=""):
     """Recursively discover all CPSO numbers matching a name prefix.
 
-    If the API overflows, subdivides by appending characters to the last name.
-    If the last name is already very long, subdivides by first name initial.
+    Strategy: always keep the last name as a 2-letter prefix. On overflow,
+    subdivide by first name initial (A-Z), then extend the first name
+    further if needed. This guarantees complete coverage — no doctor can
+    be missed regardless of last name length.
     """
     if shutdown_requested:
         return
@@ -208,22 +208,31 @@ def discover_prefix(session, last_name, completed, all_cpso, stats, first_name="
     if not overflowed:
         # Success — record results
         new = numbers - all_cpso
-        if new:
-            log.debug(
-                "%s%s: %d doctors (%d new)",
-                last_name,
-                f" / {first_name}*" if first_name else "",
-                len(numbers),
-                len(new),
-            )
+        log.debug(
+            "%s%s: %d doctors (%d new)",
+            last_name,
+            f" / {first_name}*" if first_name else "",
+            len(numbers),
+            len(new),
+        )
         all_cpso.update(numbers)
         completed.add(key)
         stats["resolved"] += 1
         return
 
-    # Overflowed — need to subdivide
-    if first_name:
-        # Already subdividing by first name — go deeper on first name
+    # Overflowed — subdivide by first name
+    if not first_name:
+        # First overflow — split by first name initial (A-Z)
+        log.debug("%s: overflow — splitting by first name", last_name)
+        for c in FIRST_NAME_CHARS:
+            if shutdown_requested:
+                return
+            discover_prefix(
+                session, last_name, completed, all_cpso, stats,
+                first_name=c,
+            )
+    else:
+        # Already subdividing by first name — extend it
         log.debug(
             "%s / %s*: overflow — extending first name", last_name, first_name
         )
@@ -233,25 +242,6 @@ def discover_prefix(session, last_name, completed, all_cpso, stats, first_name="
             discover_prefix(
                 session, last_name, completed, all_cpso, stats,
                 first_name=first_name + c,
-            )
-    elif len(last_name) >= MAX_LAST_NAME_DEPTH:
-        # Last name is long enough — switch to first name subdivision
-        log.debug("%s: overflow at depth %d — splitting by first name", last_name, len(last_name))
-        for c in FIRST_NAME_CHARS:
-            if shutdown_requested:
-                return
-            discover_prefix(
-                session, last_name, completed, all_cpso, stats,
-                first_name=c,
-            )
-    else:
-        # Extend last name by one character
-        log.debug("%s: overflow — extending to %d chars", last_name, len(last_name) + 1)
-        for c in EXTEND_CHARS:
-            if shutdown_requested:
-                return
-            discover_prefix(
-                session, last_name + c, completed, all_cpso, stats,
             )
 
 
