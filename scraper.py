@@ -145,7 +145,7 @@ def check_exists(session, cpso_number):
         "POST",
         config.SEARCH_URL,
         headers=config.SEARCH_HEADERS,
-        data={"cpsoNumber": str(cpso_number)},
+        data={"cpsoNumber": str(cpso_number), "cbx-includeinactive": "true"},
     )
     if resp is None:
         return None
