@@ -132,21 +132,36 @@ def search(session, last_name, first_name=""):
                 },
                 timeout=15,
             )
-            # The CPSO API occasionally returns malformed JSON with
-            # stray backslashes in address fields (e.g. "123 Oak Ave\").
-            # Strip trailing backslashes before closing quotes to fix.
+            # The CPSO API occasionally returns malformed JSON:
+            # - stray backslashes before closing quotes (e.g. "Oak Ave\")
+            # - unescaped quotes inside strings (e.g. "Station "T"")
+            # Since we only need totalcount and cpsonumber, fall back to
+            # regex extraction when the JSON can't be parsed.
             text = re.sub(r'\\(?=")', '', resp.text)
-            result = json.loads(text, strict=False)
-
-            if result.get("totalcount") == -1:
-                return set(), True
-
-            numbers = set()
-            for r in result.get("results", []):
-                cpso = r.get("cpsonumber")
-                if cpso:
-                    numbers.add(int(cpso))
-            return numbers, False
+            try:
+                result = json.loads(text, strict=False)
+                if result.get("totalcount") == -1:
+                    return set(), True
+                numbers = set()
+                for r in result.get("results", []):
+                    cpso = r.get("cpsonumber")
+                    if cpso:
+                        numbers.add(int(cpso))
+                return numbers, False
+            except json.JSONDecodeError:
+                # Fall back to regex extraction of required fields
+                total_match = re.search(r'"totalcount"\s*:\s*(-?\d+)', text)
+                if total_match and int(total_match.group(1)) == -1:
+                    return set(), True
+                numbers = {
+                    int(m.group(1))
+                    for m in re.finditer(r'"cpsonumber"\s*:\s*"?(\d+)"?', text)
+                }
+                log.debug(
+                    "Used regex fallback for '%s'/'%s' — %d numbers extracted",
+                    last_name, first_name, len(numbers),
+                )
+                return numbers, False
 
         except Exception as e:
             last_error = e
