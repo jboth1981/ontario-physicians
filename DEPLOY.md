@@ -5,7 +5,7 @@
 The local database (`cpso_physicians.db`) contains raw HTML from every scraped
 physician page, which makes it 8GB+. Production runs on a 512MB Lightsail
 instance, so we **never push the full database**. Instead, we create a stripped
-copy that removes `raw_html` and vacuum it down to ~120MB.
+copy that removes `raw_html` and vacuum it down to ~190MB.
 
 ## Prerequisites
 
@@ -13,9 +13,30 @@ copy that removes `raw_html` and vacuum it down to ~120MB.
 - Server: `ubuntu@3.99.186.120`
 - App path on server: `/opt/ontario_physicians`
 
-## Steps
+## Automated deployment
 
-### 1. Create a stripped copy of the database
+```bash
+python3 deploy_db.py
+```
+
+This script handles everything in one command:
+
+1. Creates a stripped copy (nulls `raw_html`, vacuums)
+2. Validates the stripped DB (row counts, integrity check)
+3. Rebuilds the R-tree spatial index
+4. Uploads to the server alongside the existing DB
+5. Backs up the current production DB
+6. Swaps the new DB into place
+7. Restarts the service and verifies it's running
+8. **Rolls back automatically** if the service fails to start
+
+The previous production DB is kept as `cpso_physicians_backup.db` on the server.
+
+## Manual steps (reference)
+
+If you need to deploy manually (e.g., the script fails partway through):
+
+### 1. Create a stripped copy
 
 ```bash
 python3 -c "
@@ -28,12 +49,6 @@ conn.close()
 print('Done.')
 "
 ```
-
-This copies the DB to `/tmp`, nulls out `raw_html`, and vacuums to reclaim
-space. The original database is untouched.
-
-**Safe to run while the scraper is running** — it copies the file first,
-so the scraper's writes don't conflict.
 
 ### 2. Upload to the server
 
@@ -68,5 +83,5 @@ Should show `active (running)`.
 - **Geocoder vs scraper conflict:** You can't run `geocode.py` while
   `scraper.py` is running (SQLite write lock). Send `SIGINT` to the scraper
   first, run the geocoder, then resume the scraper.
-- The scraper supports resume — it tracks progress in `scrape_progress`, so
+- The scraper supports resume — it tracks progress in the database, so
   restarting it will pick up where it left off.

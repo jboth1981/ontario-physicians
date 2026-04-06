@@ -48,10 +48,14 @@ Fetches each doctor's full profile page from the CPSO website and parses it
 into structured data (name, addresses, specialties, languages, etc.).
 
 ```bash
-python3 scraper.py                          # Scrape default CPSO range
-python3 scraper.py --start 18000 --end 290000  # Custom range
+python3 scraper.py --from-file discovered_cpso_numbers.txt  # Scrape discovered doctors
+python3 scraper.py --start 18000 --end 290000               # Custom range
+python3 scraper.py --reparse                                # Re-extract from stored HTML
+python3 scraper.py --rebuild-fts                            # Rebuild full-text search index
 ```
 
+- `--from-file` skips the existence check (numbers are pre-verified by `discover.py`)
+  and only processes doctors not already in the database
 - Stores parsed data in `cpso_physicians.db`
 - Retains raw HTML for re-parsing if needed
 - Supports resume (tracks progress in the database)
@@ -115,8 +119,8 @@ discover.py      — CPSO number discovery via API search
 scraper.py       — Profile page scraper and parser
 parser.py        — HTML parsing for physician detail pages
 geocode.py       — Postal code geocoding via Google API
-search.py        — CPSO search API client (used by scraper)
-deploy_db.py     — Safe database deployment with validation
+search.py        — CLI keyword search across the physician database
+deploy_db.py     — Safe database deployment with validation and rollback
 web/
   app.py         — FastAPI application
   routes.py      — Route handlers

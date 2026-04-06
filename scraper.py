@@ -206,6 +206,87 @@ def reparse(conn):
 # ---------------------------------------------------------------------------
 
 
+def scrape_numbers(numbers, label="list"):
+    """Scrape a specific iterable of CPSO numbers.
+
+    Skips numbers already present in the physicians table. Numbers that
+    were previously marked not_found/error in scrape_progress will be
+    retried (useful for recovering from bugs like the inactive-flag fix).
+    """
+    conn = db.get_connection()
+    session = _make_session()
+
+    numbers = sorted(set(numbers))
+    already_scraped = {
+        row[0] for row in conn.execute("SELECT cpso_number FROM physicians")
+    }
+    to_process = [n for n in numbers if n not in already_scraped]
+
+    log.info(
+        "Scraping %d CPSO numbers from %s (%d already in DB, %d to process)",
+        len(numbers), label, len(numbers) - len(to_process), len(to_process),
+    )
+
+    checked = 0
+    found = 0
+    errors = 0
+    pending_commits = 0
+    total = len(to_process)
+
+    for cpso_number in to_process:
+        if shutdown_requested:
+            log.info("Shutdown requested. Committing and exiting.")
+            conn.commit()
+            break
+
+        checked += 1
+
+        # Skip existence check: every number in the input list was already
+        # verified by discover.py, so we go straight to fetching the detail page.
+        html = fetch_detail_page(session, cpso_number)
+        _delay()
+
+        if html is None:
+            db.mark_error(conn, cpso_number)
+            errors += 1
+            pending_commits += 1
+            log.warning("CPSO# %d: failed to fetch detail page", cpso_number)
+        else:
+            try:
+                data = physician_parser.parse_physician_page(html, cpso_number)
+                db.insert_physician(conn, data)
+                db.update_fts_for_physician(conn, cpso_number)
+                found += 1
+                pending_commits += 1
+                log.debug(
+                    "CPSO# %d: scraped — %s",
+                    cpso_number,
+                    data.get("full_name", "?"),
+                )
+            except Exception as e:
+                db.mark_error(conn, cpso_number)
+                errors += 1
+                pending_commits += 1
+                log.error("CPSO# %d: parse error: %s", cpso_number, e)
+
+        if pending_commits >= config.BATCH_SIZE:
+            conn.commit()
+            pending_commits = 0
+
+        if checked % config.PROGRESS_INTERVAL == 0:
+            log.info(
+                "Progress: %d / %d | found %d | errors %d | current CPSO# %d",
+                checked, total, found, errors, cpso_number,
+            )
+
+    conn.commit()
+    log.info(
+        "Done. Checked %d numbers. Found %d physicians. Errors: %d.",
+        checked, found, errors,
+    )
+    conn.close()
+
+
 def scrape_range(start, end):
     """Scrape CPSO numbers from start to end (inclusive)."""
     conn = db.get_connection()
@@ -333,6 +414,11 @@ def main():
         help=f"Last CPSO number to check (default: {config.DEFAULT_END})",
     )
     arg_parser.add_argument(
+        "--from-file",
+        type=str,
+        help="Read CPSO numbers from a file (one per line) instead of using --start/--end",
+    )
+    arg_parser.add_argument(
         "--reparse",
         action="store_true",
         help="Re-extract data from stored HTML without re-downloading",
@@ -356,6 +442,10 @@ def main():
         conn.commit()
         conn.close()
         log.info("FTS rebuild complete.")
+    elif args.from_file:
+        with open(args.from_file) as f:
+            numbers = [int(line.strip()) for line in f if line.strip()]
+        scrape_numbers(numbers, label=args.from_file)
     else:
         scrape_range(args.start, args.end)
 
