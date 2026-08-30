@@ -1,3 +1,13 @@
-your-domain.com {
-    reverse_proxy 127.0.0.1:8000
+{
+	email jordan.bothwell@gmail.com
+	default_sni 3.99.186.120
+}
+
+https://3.99.186.120 {
+	tls {
+		issuer acme {
+			profile shortlived
+		}
+	}
+	reverse_proxy 127.0.0.1:8000
 }

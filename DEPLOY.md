@@ -13,6 +13,20 @@ copy that removes `raw_html` and vacuum it down to ~190MB.
 - Server: `ubuntu@3.99.186.120`
 - App path on server: `/opt/ontario_physicians`
 
+## Server architecture
+
+Caddy terminates TLS on ports 80/443 and reverse-proxies to uvicorn on
+`127.0.0.1:8000` (systemd service `ontario-physicians`). HTTPS uses a
+short-lived Let's Encrypt certificate issued directly for the IP address
+(no domain), auto-renewed by Caddy every few days via an HTTP-01 challenge —
+so port 80 must stay open in the Lightsail firewall.
+
+- Live config: `/etc/caddy/Caddyfile` and `/etc/systemd/system/ontario-physicians.service`
+- Reference copies (keep in sync): `deploy/Caddyfile` and `deploy/ontario-physicians.service`
+- `default_sni` in the Caddyfile is required: clients connecting by bare IP
+  send no SNI, and the instance sits behind Lightsail NAT, so Caddy cannot
+  otherwise select the right certificate.
+
 ## Automated deployment
 
 ```bash

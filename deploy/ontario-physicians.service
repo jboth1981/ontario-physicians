@@ -4,10 +4,10 @@ After=network.target
 
 [Service]
 Type=simple
-User=www-data
+User=ubuntu
 WorkingDirectory=/opt/ontario_physicians
 EnvironmentFile=/opt/ontario_physicians/.env
-ExecStart=/opt/ontario_physicians/venv/bin/uvicorn web.app:app --host 127.0.0.1 --port 8000 --workers 2
+ExecStart=/opt/ontario_physicians/venv/bin/uvicorn web.app:app --host 127.0.0.1 --port 8000 --workers 1
 Restart=always
 RestartSec=5
 

@@ -2,7 +2,7 @@
 
 A web application for searching Ontario physicians by name, specialty, language, and location. Data is sourced from the [College of Physicians and Surgeons of Ontario (CPSO)](https://register.cpso.on.ca/) public register.
 
-Live at: `http://3.99.186.120`
+Live at: `https://3.99.186.120`
 
 ## Architecture
 
